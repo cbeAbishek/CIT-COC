@@ -20,3 +20,8 @@ if (!supabaseUrl || !supabaseAnonKey) {
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 export default supabase
+
+// Helpful exports for runtime checks in client code
+export const SUPABASE_URL = supabaseUrl
+export const SUPABASE_ANON_KEY = supabaseAnonKey
+export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey)
