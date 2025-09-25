@@ -91,10 +91,10 @@ export default function Page() {
 
           <div className="flex items-center gap-3">
             <Button variant="destructive" asChild>
-              <a href="#signin" className="text-sm">Sign in</a>
+              <a href="/auth" className="text-sm">Sign in</a>
             </Button>
-            <Button>
-              Get started
+            <Button asChild>
+              <a href="/auth">Get started</a>
             </Button>
           </div>
         </div>
@@ -150,10 +150,7 @@ export default function Page() {
       {/* Supabase test */}
       <section id="supabase" className="container mx-auto px-6 py-12">
         <h2 className="text-2xl font-bold mb-4">Supabase quick test</h2>
-        <p className="text-sm text-slate-600 mb-4">
-          Copy <code className="bg-slate-100 px-1 rounded">.env.local.example</code> to <code className="bg-slate-100 px-1 rounded">.env.local</code> and fill in your values.
-          Then enter a table name below and click "Test Supabase" to run a simple select.
-        </p>
+        
 
         <SupabaseTester />
       </section>
