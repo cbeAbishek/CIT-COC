@@ -13,8 +13,10 @@ export default function AuthForm() {
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [showSql, setShowSql] = useState(false)
   const [rawResponse, setRawResponse] = useState<any | null>(null)
+  
+  // Only show debug info in development
+  const isDev = process.env.NODE_ENV === 'development'
 
   // Helper: extract user id from various Supabase auth responses
   function extractUserIdFromAuthResponse(resp: any) {
@@ -27,7 +29,6 @@ export default function AuthForm() {
   async function handleSignUp() {
     setError(null)
     setMessage(null)
-    setShowSql(false)
     setLoading(true)
     // Quick config check
     if (!isSupabaseConfigured) {
@@ -45,10 +46,9 @@ export default function AuthForm() {
       // Use supabase directly for clearer response shape
       const res = await supabase.auth.signUp({ email, password })
 
-      // Save/debug the full response so UI can display it for debugging
-      setRawResponse(res)
-      if (process.env.NODE_ENV !== 'production') {
-        // eslint-disable-next-line no-console
+      // Save/debug the full response only in development
+      if (isDev) {
+        setRawResponse(res)
         console.debug('supabase.signUp response:', res)
       }
 
@@ -58,9 +58,8 @@ export default function AuthForm() {
         // If user already exists, attempt sign-in
         if (/already exists|duplicate|user exists|User already registered/i.test(msg)) {
           const signInRes = await supabase.auth.signInWithPassword({ email, password })
-          setRawResponse(signInRes)
-          if (process.env.NODE_ENV !== 'production') {
-            // eslint-disable-next-line no-console
+          if (isDev) {
+            setRawResponse(signInRes)
             console.debug('supabase.signIn (existing user) response:', signInRes)
           }
           if (signInRes.error) {
@@ -74,8 +73,7 @@ export default function AuthForm() {
             if (profileError) {
               const pm = profileError.message ?? String(profileError)
               if (/relation|does not exist|no such table/i.test(pm)) {
-                setShowSql(true)
-                setError('Profiles table not found in your database.')
+                setError('Database schema not ready. Please run migrations first.')
               } else {
                 setError(pm)
               }
@@ -99,8 +97,7 @@ export default function AuthForm() {
         if (profileError) {
           const pm = profileError.message ?? String(profileError)
           if (/relation|does not exist|no such table/i.test(pm)) {
-            setShowSql(true)
-            setError('Profiles table not found in your database.')
+            setError('Database schema not ready. Please run migrations first.')
           } else {
             setError(pm)
           }
@@ -135,18 +132,19 @@ export default function AuthForm() {
     }
     try {
   const res = await supabase.auth.signInWithPassword({ email, password })
-  setRawResponse(res)
+      if (isDev) {
+        setRawResponse(res)
+      }
+      
       if (res.error) {
-        if (process.env.NODE_ENV !== 'production') {
-          // eslint-disable-next-line no-console
+        if (isDev) {
           console.debug('supabase.signInWithPassword response (error):', res)
         }
         setError(res.error.message ?? String(res.error))
         return
       }
 
-      if (process.env.NODE_ENV !== 'production') {
-        // eslint-disable-next-line no-console
+      if (isDev) {
         console.debug('supabase.signInWithPassword response (success):', res)
       }
 
@@ -157,8 +155,7 @@ export default function AuthForm() {
         if (profileError) {
           const pm = profileError.message ?? String(profileError)
           if (/relation|does not exist|no such table/i.test(pm)) {
-            setShowSql(true)
-            setError('Profiles table not found in your database.')
+            setError('Database schema not ready. Please run migrations first.')
           } else {
             setError(pm)
           }
@@ -179,8 +176,6 @@ export default function AuthForm() {
     if (mode === 'signup') await handleSignUp()
     else await handleSignIn()
   }
-
-  const sqlSnippet = `-- Run this in Supabase SQL editor to create a simple profiles table\nCREATE TABLE profiles (\n  id uuid PRIMARY KEY,\n  email text UNIQUE,\n  full_name text,\n  created_at timestamptz DEFAULT now()\n);`
 
   return (
     <Card className="max-w-md mx-auto">
@@ -228,18 +223,11 @@ export default function AuthForm() {
           {message && <div className="text-sm text-green-700">{message}</div>}
           {error && <div className="text-sm text-red-600">{error}</div>}
 
-          {showSql && (
-            <div className="mt-3 bg-slate-50 p-3 rounded border">
-              <div className="text-sm mb-2">Profiles table missing — run this SQL in Supabase SQL editor:</div>
-              <pre className="text-xs overflow-auto whitespace-pre-wrap">{sqlSnippet}</pre>
-            </div>
-          )}
-
-          {/* Dev-only: show raw Supabase response to help debug 400s */}
-          {rawResponse && (
-            <div className="mt-3 bg-black/5 p-3 rounded border">
-              <div className="text-sm mb-2">Raw Supabase response (dev):</div>
-              <pre className="text-xs overflow-auto max-h-48">{JSON.stringify(rawResponse, null, 2)}</pre>
+          {/* Dev-only: show raw Supabase response to help debug auth issues */}
+          {isDev && rawResponse && (
+            <div className="mt-3 bg-gray-50 p-3 rounded border">
+              <div className="text-sm mb-2 text-gray-600">Debug Response (dev-only):</div>
+              <pre className="text-xs overflow-auto max-h-48 text-gray-800">{JSON.stringify(rawResponse, null, 2)}</pre>
             </div>
           )}
         </form>
